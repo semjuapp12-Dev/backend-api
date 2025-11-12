@@ -1,0 +1,3 @@
+# Dependências para o serviço de processamento de dados em Python
+pymongo
+python-dotenv
