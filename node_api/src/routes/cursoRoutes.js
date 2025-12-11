@@ -16,10 +16,10 @@ router.get('/:id', cursoController.getCursoById);
 // Adaptado para usar a autenticação JWT padrão do projeto
 
 // POST /api/content/cursos -> Criar curso
-router.post('/', passport.authenticate('jwt', { session: false }), cursoController.createCurso); 
+router.post('/', passport.authenticate('jwt', { session: false }), cursoController.upload.single('imagem'), cursoController.createCurso); 
 
 // PUT /api/content/cursos/:id -> Atualizar curso
-router.put('/:id', passport.authenticate('jwt', { session: false }), cursoController.updateCurso); 
+router.put('/:id', passport.authenticate('jwt', { session: false }), cursoController.upload.single('imagem'), cursoController.updateCurso); 
 
 // DELETE /api/content/cursos/:id -> Deletar curso
 router.delete('/:id', passport.authenticate('jwt', { session: false }), cursoController.deleteCurso); 

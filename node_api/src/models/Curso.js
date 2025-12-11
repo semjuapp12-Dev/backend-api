@@ -9,46 +9,59 @@ const CursoSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    vagasTotais: {
-        type: Number,
-        default: 0
+    organizacao: {
+        type: String
     },
-    data: {
+    dataInicio: { //formato ISO enviado pelo frontend
         type: Date,
         required: true
     },
-    horaInicio: {
-        type: String
+    dataFim: { //formato ISO enviado pelo fronten
+        type: Date,
+        required: true
     },
-    horaFim: {
+    hora: {
         type: String
     },
     local: {
         type: String
     },
-    organizacao: {
-        type: String
+    status: {
+        type: String,
+        default: 'Upcoming' // Valor padrão se não for enviado
     },
-    tags: [{
-        type: String
-    }],
-    requisitos: [{
-        type: String
-    }],
     destacado: {
         type: Boolean,
         default: false
     },
-    mediaName: {
-        type: String // Armazena o nome do arquivo ou URL
+    vagas: {
+        type: Number, // Pode ser null se for ilimitado
+        default: null
     },
-    mediaType: {
-        type: String // 'image' ou 'video'
+    vagasOcupadas: { // Número de vagas já ocupadas
+        type: Number,
+        default: 0
     },
-    status: {
-        type: String,
-        default: 'Ativo'
+    conteudos: [ // lista de conteúdos do evento, cada conteúdo com título e itens
+        {
+            titulo: { type: String, required: true },
+            itens: [{ type: String }]
+        }
+    ],
+    contatos: [ // lista de contatos do evento
+        {
+            telefone: { type: String },
+            email: { type: String },
+            redeSocial: { type: String }
+        }
+    ],
+    imagem: {
+        type: String // URL da imagem ou caminho no servidor
     },
+
+    tags: [{
+        type: String
+    }],
     criadoEm: {
         type: Date,
         default: Date.now
