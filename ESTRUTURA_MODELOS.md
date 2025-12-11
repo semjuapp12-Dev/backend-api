@@ -13,11 +13,14 @@ Arquivo de referência com a estrutura (campos, tipos e observações) dos model
 - `highlighted`: Boolean — padrão `false`
 - `acesso`: String — enum `['Público', 'Privado']`, padrão `'Público'`
 - `vagas`: Number — opcional (pode ser `null` se ilimitado)
+- `vagasOcupadas`: Number — padrão `0` (contador de vagas ocupadas)
+- `conteudos`: [{ `titulo`: String — obrigatório, `itens`: [String] }] — array de objetos para conteúdos do evento
+- `contatos`: [{ `telefone`: String, `email`: String, `redeSocial`: String }] — array de objetos para contatos
 - `imagem`: String — URL ou referência de mídia
 - `tags`: [String]
 - `criadoEm`: Date — padrão `Date.now`
 
-Observação: campo de data principal é `data`; o modelo também usa `criadoEm` para registro.
+Observação: campo de data principal é `data`; o modelo também usa `criadoEm` para registro. Novos campos `vagasOcupadas`, `conteudos` e `contatos` suportam gestão de inscrições e detalhes adicionais.
 
 **2) Content (conteúdos / notícias) (`src/models/Content.js`)**
 - `titulo`: String — obrigatório, `trim`

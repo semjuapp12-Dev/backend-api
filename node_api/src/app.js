@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const helmet = require('helmet');
 const cors = require('cors');
+const path = require('path'); // Adicionado para servir arquivos estáticos
 
 // Importação das rotas
 const cursoRoutes = require('./routes/cursoRoutes'); 
@@ -31,6 +32,9 @@ app.use(helmet());
 app.use(cors()); 
 
 app.use(express.json()); // Para parsear application/json
+
+// --- Servir arquivos estáticos da pasta uploads/ ---
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // --- LOG DE REQUISIÇÕES ---
 // Isso vai nos dizer se a requisição está chegando no servidor
