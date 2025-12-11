@@ -1,53 +1,68 @@
 const mongoose = require('mongoose');
 
 const OportunidadeSchema = new mongoose.Schema({
-    cargo: {
-        type: String,
-        required: true
-    },
-    empresa: {
+    titulo: {
         type: String,
         required: true
     },
     descricao: {
         type: String
     },
-    // Array de strings para os requisitos
-    requisitos: [{
-        type: String
-    }],
-    localizacao: {
+    organizador: {
         type: String
     },
-    horario: {
+    empresa: {
+        type: String,
+        required: true
+    },
+    cargo: {
+        type: String,
+        required: true
+    },
+    local: {
         type: String
     },
     salario: {
         type: String
     },
-    dataInicio: {
-        type: Date
-    },
-    prazo: {
-        type: Date
-    },
-    // Dados de contato aninhados ou planos (no seu front estão planos, mantive planos aqui)
-    contatoNome: {
+    horaTabalho: {
         type: String
     },
-    contatoFuncao: {
-        type: String
+    dataInicio: { //formato ISO enviado pelo frontend
+        type: Date,
+        required: true
     },
-    contatoEmail: {
-        type: String
+    dataFim: { //formato ISO enviado pelo fronten
+        type: Date,
+        required: true
     },
-    contatoTelefone: {
-        type: String
+    destacado: {
+        type: Boolean,
+        default: false
     },
+    conteudos: [ // lista de conteúdos do evento, cada conteúdo com título e itens
+        {
+            titulo: { type: String, required: true },
+            itens: [{ type: String }]
+        }
+    ],
+    contatos: [ // lista de contatos do evento
+        {
+            telefone: { type: String },
+            email: { type: String },
+            redeSocial: { type: String }
+        }
+    ],
     status: {
         type: String,
-        enum: ['Aberta', 'Fechada', 'Pendente'],
-        default: 'Aberta'
+        default: 'Upcoming' // Valor padrão se não for enviado
+    },
+    vagas: {
+        type: Number, // Pode ser null se for ilimitado
+        default: null
+    },
+    sobreEmpresa: {
+        type: String
     },
     criadoEm: {
         type: Date,

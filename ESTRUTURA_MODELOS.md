@@ -69,21 +69,22 @@ Observação: campos de contato são armazenados como campos planos (nome, email
 **4) Curso (`src/models/Curso.js`)**
 - `titulo`: String — obrigatório
 - `descricao`: String — obrigatório
-- `vagasTotais`: Number — padrão `0`
-- `data`: Date — obrigatório (data do curso)
-- `horaInicio`: String — opcional
-- `horaFim`: String — opcional
-- `local`: String — opcional
 - `organizacao`: String — opcional
-- `tags`: [String]
-- `requisitos`: [String]
+- `dataInicio`: Date — obrigatório (data de início do curso)
+- `dataFim`: Date — obrigatório (data de fim do curso)
+- `hora`: String — opcional
+- `local`: String — opcional
+- `status`: String — padrão `'Upcoming'`
 - `destacado`: Boolean — padrão `false`
-- `mediaName`: String — nome/URL do arquivo de mídia
-- `mediaType`: String — ex: `'image'` ou `'video'`
-- `status`: String — padrão `'Ativo'`
+- `vagas`: Number — opcional (pode ser `null` se ilimitado)
+- `vagasOcupadas`: Number — padrão `0` (contador de vagas ocupadas)
+- `conteudos`: [{ `titulo`: String — obrigatório, `itens`: [String] }] — array de objetos para conteúdos do curso
+- `contatos`: [{ `telefone`: String, `email`: String, `redeSocial`: String }] — array de objetos para contatos
+- `imagem`: String — URL ou referência de mídia
+- `tags`: [String]
 - `criadoEm`: Date — padrão `Date.now`
 
-Observação: `Curso` tem campos próprios para mídia e vagas; o campo `data` é o principal para ordenação por data do evento/curso.
+Observação: campos de data principais são `dataInicio` e `dataFim`; o modelo suporta gestão de inscrições com `vagas` e `vagasOcupadas`. Novos campos `conteudos` e `contatos` permitem detalhes adicionais.
 
 ---
 
