@@ -48,23 +48,23 @@ Observação: campo de data principal é `data`; o modelo também usa `criadoEm`
 Observação: o `Content` é um modelo genérico que agrega notícias, eventos e vagas, por isso possui campos opcionais para vários tipos.
 
 **3) Oportunidade (`src/models/Oportunidade.js`)**
-- `cargo`: String — obrigatório
-- `empresa`: String — obrigatório
+- `titulo`: String — obrigatório
 - `descricao`: String — opcional
-- `requisitos`: [String] — array de requisitos
-- `localizacao`: String — opcional
-- `horario`: String — opcional
+- `organizador`: String — opcional
+- `empresa`: String — obrigatório
+- `cargo`: String — obrigatório
+- `local`: String — opcional
+- `status`: String — padrão `'Upcoming'`
 - `salario`: String — opcional
-- `dataInicio`: Date — opcional
-- `prazo`: Date — opcional
-- `contatoNome`: String — opcional
-- `contatoFuncao`: String — opcional
-- `contatoEmail`: String — opcional
-- `contatoTelefone`: String — opcional
-- `status`: String — enum `['Aberta','Fechada','Pendente']`, padrão `'Aberta'`
+- `horaTrabalho`: String — opcional
+- `dataInicio`: Date — obrigatório (data de início do curso)
+- `dataFim`: Date — obrigatório (data de fim do curso)
+- `destacado`: Boolean — padrão `false`
+- `conteudos`: [{ `titulo`: String — obrigatório, `itens`: [String] }] — array de objetos para conteúdos do curso
+- `contatos`: [{ `telefone`: String, `email`: String, `redeSocial`: String }] — array de objetos para contatos
+- `vagas`: Number — opcional (pode ser `null` se ilimitado)
+- `sobreEmpresa`: String — opcional
 - `criadoEm`: Date — padrão `Date.now`
-
-Observação: campos de contato são armazenados como campos planos (nome, email, telefone).
 
 **4) Curso (`src/models/Curso.js`)**
 - `titulo`: String — obrigatório

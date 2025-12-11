@@ -22,6 +22,10 @@ const OportunidadeSchema = new mongoose.Schema({
     local: {
         type: String
     },
+    status: {
+        type: String,
+        default: 'Upcoming' // Valor padrão se não for enviado
+    },
     salario: {
         type: String
     },
@@ -53,10 +57,7 @@ const OportunidadeSchema = new mongoose.Schema({
             redeSocial: { type: String }
         }
     ],
-    status: {
-        type: String,
-        default: 'Upcoming' // Valor padrão se não for enviado
-    },
+    
     vagas: {
         type: Number, // Pode ser null se for ilimitado
         default: null
