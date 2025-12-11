@@ -10,7 +10,7 @@ Arquivo de referência com a estrutura (campos, tipos e observações) dos model
 - `hora`: String — opcional
 - `local`: String — opcional
 - `status`: String — padrão `'Upcoming'`
-- `highlighted`: Boolean — padrão `false`
+- `destacado`: Boolean — padrão `false`
 - `acesso`: String — enum `['Público', 'Privado']`, padrão `'Público'`
 - `vagas`: Number — opcional (pode ser `null` se ilimitado)
 - `vagasOcupadas`: Number — padrão `0` (contador de vagas ocupadas)

@@ -26,7 +26,7 @@ const EventoSchema = new mongoose.Schema({
         type: String,
         default: 'Upcoming' // Valor padrão se não for enviado
     },
-    highlighted: {
+    destacado: {
         type: Boolean,
         default: false
     },
