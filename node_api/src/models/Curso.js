@@ -62,6 +62,10 @@ const CursoSchema = new mongoose.Schema({
     tags: [{
         type: String
     }],
+     likes: {
+        type: Number,
+        default: 0
+    },
     criadoEm: {
         type: Date,
         default: Date.now
