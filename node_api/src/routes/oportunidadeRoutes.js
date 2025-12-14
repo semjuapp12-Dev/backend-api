@@ -5,23 +5,43 @@ const passport = require('passport'); // Usamos o passport configurado anteriorm
 
 // --- ROTAS PÚBLICAS (Qualquer um vê) ---
 
-// GET /api/content/oportunidades
+// GET /api/content/oportunidades -> Lista todas
 router.get('/', oportunidadeController.listOportunidades); 
 
-// GET /api/content/oportunidades/:id
+// GET /api/content/oportunidades/:id -> Detalhes de uma oportunidade
 router.get('/:id', oportunidadeController.getOportunidadeById); 
 
 
 // --- ROTAS PROTEGIDAS (Precisa de Login) ---
-// Substituí o 'requireAuth' pelo 'passport.authenticate' para manter o padrão que funciona
 
-// POST /api/content/oportunidades
-router.post('/', passport.authenticate('jwt', { session: false }), oportunidadeController.createOportunidade); 
+// POST /api/content/oportunidades -> Criar oportunidade
+router.post(
+  '/', 
+  passport.authenticate('jwt', { session: false }), 
+  oportunidadeController.upload?.single ? oportunidadeController.upload.single('imagem') : (req, res, next) => next(),
+  oportunidadeController.createOportunidade
+); 
 
-// PUT /api/content/oportunidades/:id
-router.put('/:id', passport.authenticate('jwt', { session: false }), oportunidadeController.updateOportunidade); 
+// PUT /api/content/oportunidades/:id -> Atualizar oportunidade
+router.put(
+  '/:id', 
+  passport.authenticate('jwt', { session: false }), 
+  oportunidadeController.upload?.single ? oportunidadeController.upload.single('imagem') : (req, res, next) => next(),
+  oportunidadeController.updateOportunidade
+); 
 
-// DELETE /api/content/oportunidades/:id
-router.delete('/:id', passport.authenticate('jwt', { session: false }), oportunidadeController.deleteOportunidade); 
+// DELETE /api/content/oportunidades/:id -> Deletar oportunidade
+router.delete(
+  '/:id', 
+  passport.authenticate('jwt', { session: false }), 
+  oportunidadeController.deleteOportunidade
+); 
+
+// PUT /api/content/oportunidades/:id/highlight -> Alternar destaque (opcional)
+router.put(
+  '/:id/highlight', 
+  passport.authenticate('jwt', { session: false }), 
+  oportunidadeController.toggleHighlight
+); 
 
 module.exports = router;

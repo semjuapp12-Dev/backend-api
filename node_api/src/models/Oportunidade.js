@@ -29,7 +29,7 @@ const OportunidadeSchema = new mongoose.Schema({
     salario: {
         type: String
     },
-    horaTabalho: {
+    horaTrabalho: {
         type: String
     },
     dataInicio: { //formato ISO enviado pelo frontend
@@ -44,22 +44,25 @@ const OportunidadeSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    conteudos: [ // lista de conteúdos do evento, cada conteúdo com título e itens
+    conteudos: [ // lista de conteúdos do oportunidades, cada conteúdo com título e itens
         {
             titulo: { type: String, required: true },
             itens: [{ type: String }]
         }
     ],
-    contatos: [ // lista de contatos do evento
+    contatos: [ // lista de contatos de oportunidades
         {
             telefone: { type: String },
             email: { type: String },
             redeSocial: { type: String }
         }
     ],
+    imagem: {
+        type: String // URL da imagem ou caminho no servidor
+    },
     
     vagas: {
-        type: Number, // Pode ser null se for ilimitado
+        type: Number, 
         default: null
     },
     sobreEmpresa: {
