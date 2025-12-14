@@ -1,166 +1,149 @@
+// src/controllers/cursoController.js
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs'); // Adicionado para remover arquivos físicos
-const Curso = require('../models/Curso'); // Importar o modelo
+const fs = require('fs');
+const Curso = require('../models/Curso');
 
-// Configuração do storage: salva imagens na pasta 'uploads/'
+// -------------------- MULTER CONFIG --------------------
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, '../../uploads/')); // Caminho absoluto para a pasta uploads/
+        cb(null, path.join(__dirname, '../../uploads/'));
     },
     filename: (req, file, cb) => {
-        // Nome único: timestamp + extensão
         cb(null, Date.now() + path.extname(file.originalname));
     }
 });
 
-// Filtro opcional: aceita apenas imagens
 const fileFilter = (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-        cb(null, true);
-    } else {
-        cb(new Error('Apenas imagens são permitidas'), false);
-    }
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Apenas imagens são permitidas'), false);
 };
 
-// Middleware de upload: aceita um arquivo chamado 'imagem'
-const upload = multer({ 
-    storage, 
-    fileFilter,
-    limits: { fileSize: 5 * 1024 * 1024 } // Limite: 5MB
-});
-
-// Exporte o upload para usar no routes (evita duplicação)
+const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
 exports.upload = upload;
 
-// Função para listar todos os cursos
+// -------------------- HELPERS --------------------
+const parseJSONSafe = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value) && value.length === 1 && typeof value[0] === 'string' && value[0].startsWith('[')) {
+        try { return JSON.parse(value[0]); } catch { return []; }
+    }
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') {
+        try { return JSON.parse(value); } catch { return []; }
+    }
+    return [];
+};
+
+// Adiciona ID único para contatos e conteúdos
+const addIds = (arr) => arr.map(item => ({ id: Date.now() + Math.random(), ...item }));
+
+// -------------------- CRUD --------------------
 exports.listCursos = async (req, res) => {
     try {
         const cursos = await Curso.find().sort({ dataInicio: 1 });
         res.status(200).json(cursos);
     } catch (error) {
-        console.error("Erro ao listar cursos:", error);
         res.status(500).json({ message: 'Erro ao buscar cursos', error: error.message });
     }
 };
 
-// Função para obter um curso por ID
 exports.getCursoById = async (req, res) => {
     try {
-        const { id } = req.params;
-        const curso = await Curso.findById(id);
-        if (!curso) {
-            return res.status(404).json({ message: 'Curso não encontrado' });
-        }
+        const curso = await Curso.findById(req.params.id);
+        if (!curso) return res.status(404).json({ message: 'Curso não encontrado' });
         res.status(200).json(curso);
     } catch (error) {
         res.status(500).json({ message: 'Erro ao buscar curso', error: error.message });
     }
 };
 
-// Função para criar um novo curso
 exports.createCurso = async (req, res) => {
     try {
         const dadosCurso = { ...req.body };
-        
-        // Parse campos que são arrays de objetos (enviados como strings no form-data)
-        if (dadosCurso.conteudos && typeof dadosCurso.conteudos === 'string') {
-            dadosCurso.conteudos = JSON.parse(dadosCurso.conteudos);
-        }
-        if (dadosCurso.contatos && typeof dadosCurso.contatos === 'string') {
-            dadosCurso.contatos = JSON.parse(dadosCurso.contatos);
-        }
-        
-        // Se imagem foi enviada, salva o caminho relativo
-        if (req.file) {
-            dadosCurso.imagem = `uploads/${req.file.filename}`;
-        }
-        
+
+        dadosCurso.tags = parseJSONSafe(dadosCurso.tags);
+        dadosCurso.contatos = addIds(parseJSONSafe(dadosCurso.contatos));
+        dadosCurso.conteudos = addIds(parseJSONSafe(dadosCurso.conteudos));
+
+        dadosCurso.destacado = dadosCurso.destacado === 'true' || dadosCurso.destacado === true;
+        dadosCurso.vagas = Number(dadosCurso.vagas) || 0;
+        dadosCurso.xp = Number(dadosCurso.xp) || 0;
+
+        if (req.file) dadosCurso.imagem = `uploads/${req.file.filename}`;
+
         const novoCurso = new Curso(dadosCurso);
         const cursoSalvo = await novoCurso.save();
-        
         res.status(201).json(cursoSalvo);
     } catch (error) {
-        console.error("Erro no controller createCurso:", error);
         res.status(500).json({ message: 'Erro ao criar curso', error: error.message });
     }
 };
 
-// Função para atualizar um curso
 exports.updateCurso = async (req, res) => {
     try {
         const { id } = req.params;
-        const dadosAtualizados = { ...req.body };
-        
-        // Parse campos que são arrays de objetos
-        if (dadosAtualizados.conteudos && typeof dadosAtualizados.conteudos === 'string') {
-            dadosAtualizados.conteudos = JSON.parse(dadosAtualizados.conteudos);
-        }
-        if (dadosAtualizados.contatos && typeof dadosAtualizados.contatos === 'string') {
-            dadosAtualizados.contatos = JSON.parse(dadosAtualizados.contatos);
-        }
-        
-        // Se nova imagem enviada, atualiza o caminho
+        const dadosAtualizados = {};
+
+        // Campos simples
+        ['titulo', 'descricao', 'organizacao', 'local', 'status'].forEach(field => {
+            if (req.body[field] !== undefined) dadosAtualizados[field] = req.body[field];
+        });
+
+        // Tags, contatos e conteúdos
+        if (req.body.tags !== undefined) dadosAtualizados.tags = parseJSONSafe(req.body.tags);
+        if (req.body.contatos !== undefined) dadosAtualizados.contatos = addIds(parseJSONSafe(req.body.contatos));
+        if (req.body.conteudos !== undefined) dadosAtualizados.conteudos = addIds(parseJSONSafe(req.body.conteudos));
+
+        // Booleanos e numéricos
+        if (req.body.destacado !== undefined) dadosAtualizados.destacado = req.body.destacado === 'true' || req.body.destacado === true;
+        if (req.body.vagas !== undefined) dadosAtualizados.vagas = Number(req.body.vagas) || 0;
+        if (req.body.xp !== undefined) dadosAtualizados.xp = Number(req.body.xp) || 0;
+
+        // Imagem
         if (req.file) {
+            const cursoAntigo = await Curso.findById(id);
+            if (cursoAntigo?.imagem && fs.existsSync(path.join(__dirname, '../../', cursoAntigo.imagem))) {
+                fs.unlinkSync(path.join(__dirname, '../../', cursoAntigo.imagem));
+            }
             dadosAtualizados.imagem = `uploads/${req.file.filename}`;
         }
-        
-        const cursoAtualizado = await Curso.findByIdAndUpdate(id, dadosAtualizados, { new: true });
-        
-        if (!cursoAtualizado) {
-            return res.status(404).json({ message: 'Curso não encontrado para atualização' });
-        }
-        
+
+        const cursoAtualizado = await Curso.findByIdAndUpdate(id, dadosAtualizados, { new: true, runValidators: true });
+        if (!cursoAtualizado) return res.status(404).json({ message: 'Curso não encontrado' });
+
         res.status(200).json(cursoAtualizado);
     } catch (error) {
         res.status(500).json({ message: 'Erro ao atualizar curso', error: error.message });
     }
 };
 
-// Função para deletar um curso
 exports.deleteCurso = async (req, res) => {
     try {
-        const { id } = req.params;
-        
-        const curso = await Curso.findById(id);
-        if (!curso) {
-            return res.status(404).json({ message: 'Curso não encontrado para exclusão' });
-        }
-        
-        // Remove o arquivo de imagem se existir
+        const curso = await Curso.findById(req.params.id);
+        if (!curso) return res.status(404).json({ message: 'Curso não encontrado' });
+
         if (curso.imagem && fs.existsSync(path.join(__dirname, '../../', curso.imagem))) {
             fs.unlinkSync(path.join(__dirname, '../../', curso.imagem));
         }
-        
-        await Curso.findByIdAndDelete(id);
-        
+
+        await Curso.findByIdAndDelete(req.params.id);
         res.status(200).json({ message: 'Curso e imagem deletados com sucesso' });
     } catch (error) {
         res.status(500).json({ message: 'Erro ao deletar curso', error: error.message });
     }
 };
 
-// Função para alternar o destaque de um curso
 exports.toggleHighlight = async (req, res) => {
     try {
-        const { id } = req.params;
-        
-        // 1. Busca o curso atual
-        const curso = await Curso.findById(id);
-        
-        if (!curso) {
-            return res.status(404).json({ message: 'Curso não encontrado' });
-        }
+        const curso = await Curso.findById(req.params.id);
+        if (!curso) return res.status(404).json({ message: 'Curso não encontrado' });
 
-        // 2. Inverte o status
         curso.destacado = !curso.destacado;
-        
-        // 3. Salva a alteração
         await curso.save();
-        
+
         res.status(200).json(curso);
     } catch (error) {
-        console.error("Erro ao alternar destaque:", error);
         res.status(500).json({ message: 'Erro ao alternar destaque', error: error.message });
     }
 };
