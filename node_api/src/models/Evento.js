@@ -67,6 +67,12 @@ const EventoSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    xp: {
+        type: Number,
+        required: true,
+        default: 0,
+        min: 0
+    },
     criadoEm: {
         type: Date,
         default: Date.now

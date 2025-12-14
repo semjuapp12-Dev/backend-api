@@ -1,100 +1,130 @@
-const express = require('express');
-const passport = require('passport');
-const dotenv = require('dotenv');
-const mongoose = require('mongoose');
-const helmet = require('helmet');
-const cors = require('cors');
-const path = require('path'); // Adicionado para servir arquivos estáticos
+const express = require("express");
+const passport = require("passport");
+const dotenv = require("dotenv");
+const mongoose = require("mongoose");
+const helmet = require("helmet");
+const cors = require("cors");
+const path = require("path");
 
 // Importação das rotas
-const cursoRoutes = require('./routes/cursoRoutes'); 
-const eventoRoutes = require('./routes/eventoRoutes'); 
-const oportunidadeRoutes = require('./routes/oportunidadeRoutes'); 
-const authRoutes = require('./routes/authRoutes'); 
-const commentRoutes = require('./routes/commentRoutes'); 
-const userRoutes = require('./routes/userRoutes'); 
-const achievementRoutes = require('./routes/achievementRoutes'); 
-const dashboardRoutes = require('./routes/dashboardRoutes'); 
+const cursoRoutes = require("./routes/cursoRoutes");
+const eventoRoutes = require("./routes/eventoRoutes");
+const oportunidadeRoutes = require("./routes/oportunidadeRoutes");
+const authRoutes = require("./routes/authRoutes");
+const commentRoutes = require("./routes/commentRoutes");
+const userRoutes = require("./routes/userRoutes");
+const achievementRoutes = require("./routes/achievementRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
-// Carrega variáveis de ambiente do arquivo .env
+// Carrega variáveis de ambiente
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI;
 
-// --- Middlewares de Segurança e Utilitários ---
-app.use(helmet());
+// -----------------------------------------------------------------------------
+// 🔐 Middlewares de Segurança (Helmet CORRIGIDO para uploads cross-origin)
+// -----------------------------------------------------------------------------
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 
-// --- CONFIGURAÇÃO DE CORS SIMPLIFICADA (Correção) ---
-// Em desenvolvimento, isso permite que qualquer origem (3000, 3001, 5173, mobile) acesse a API.
-// Isso elimina erros de bloqueio de porta cruzada.
-app.use(cors()); 
+// -----------------------------------------------------------------------------
+// 🌐 CORS (liberado para desenvolvimento)
+// -----------------------------------------------------------------------------
+app.use(cors());
 
-app.use(express.json()); // Para parsear application/json
+// -----------------------------------------------------------------------------
+// 📦 Parsers
+// -----------------------------------------------------------------------------
+app.use(express.json());
 
-// --- Servir arquivos estáticos da pasta uploads/ ---
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// -----------------------------------------------------------------------------
+// 🖼️ Arquivos estáticos (uploads) — ESSENCIAL PARA IMAGENS NO FRONTEND
+// -----------------------------------------------------------------------------
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "../uploads"), {
+    setHeaders: (res) => {
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    },
+  })
+);
 
-// --- LOG DE REQUISIÇÕES ---
-// Isso vai nos dizer se a requisição está chegando no servidor
+// -----------------------------------------------------------------------------
+// 📝 Log de requisições (debug)
+// -----------------------------------------------------------------------------
 app.use((req, res, next) => {
   console.log(`\n[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
-  if (Object.keys(req.body).length > 0) {
-    console.log('Body:', JSON.stringify(req.body, null, 2));
+
+  if (req.body && Object.keys(req.body).length > 0) {
+    console.log("Body:", JSON.stringify(req.body, null, 2));
   }
+
   next();
 });
 
-// --- Configuração do Passport ---
-app.use(passport.initialize()); 
+// -----------------------------------------------------------------------------
+// 🔑 Passport
+// -----------------------------------------------------------------------------
+app.use(passport.initialize());
+require("./config/passport")(passport);
+require("./middlewares/auth");
 
-// 1. Carrega a estratégia LOCAL
-require('./config/passport')(passport); 
+// -----------------------------------------------------------------------------
+// 🗄️ Banco de dados
+// -----------------------------------------------------------------------------
+mongoose
+  .connect(MONGO_URI)
+  .then(() => console.log("MongoDB conectado com sucesso!"))
+  .catch((err) =>
+    console.error("Erro de conexão com o MongoDB:", err.message)
+  );
 
-// 2. Carrega a configuração da estratégia JWT
-require('./middlewares/auth'); 
-
-// --- Conexão com o Banco de Dados ---
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('MongoDB conectado com sucesso!'))
-  .catch(err => {
-    console.error('Erro de conexão com o MongoDB:', err.message);
-    // Não encerra o processo para você poder ver o erro no terminal sem cair
-  });
-
-// --- Rotas de Exemplo ---
-app.get('/', (req, res) => {
+// -----------------------------------------------------------------------------
+// 🧪 Rota base
+// -----------------------------------------------------------------------------
+app.get("/", (req, res) => {
   res.status(200).json({
-    message: 'Bem-vindo à API do Hub da Juventude!',
-    status: 'online',
-    environment: process.env.NODE_ENV
+    message: "Bem-vindo à API da VOE+!",
+    status: "online",
+    environment: process.env.NODE_ENV,
   });
 });
 
-// --- Importação e Uso de Rotas ---
-app.use('/api/auth', authRoutes); 
-app.use('/api/comments', commentRoutes); 
-app.use('/api/users', userRoutes); 
-app.use('/api/achievements', achievementRoutes); 
-app.use('/api/dashboard', dashboardRoutes); 
+// -----------------------------------------------------------------------------
+// 🚦 Rotas
+// -----------------------------------------------------------------------------
+app.use("/api/auth", authRoutes);
+app.use("/api/comments", commentRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/achievements", achievementRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
-// Rotas Específicas de Conteúdo
-app.use('/api/content/cursos', cursoRoutes); 
-app.use('/api/content/eventos', eventoRoutes); 
-app.use('/api/content/oportunidades', oportunidadeRoutes); 
+// Conteúdos
+app.use("/api/content/cursos", cursoRoutes);
+app.use("/api/content/eventos", eventoRoutes);
+app.use("/api/content/oportunidades", oportunidadeRoutes);
 
-// --- Tratamento de Erros (Middleware final) ---
+// -----------------------------------------------------------------------------
+// ❌ Tratamento de erros
+// -----------------------------------------------------------------------------
 app.use((err, req, res, next) => {
-  console.error('ERRO NO SERVIDOR:', err); // Log detalhado do erro
-  res.status(500).json({ 
-      error: 'Erro interno do servidor', 
-      details: err.message 
+  console.error("ERRO NO SERVIDOR:", err);
+
+  res.status(500).json({
+    error: "Erro interno do servidor",
+    details: err.message,
   });
 });
 
-// --- Inicialização do Servidor ---
+// -----------------------------------------------------------------------------
+// 🚀 Inicialização do servidor
+// -----------------------------------------------------------------------------
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
-  console.log('Aguardando requisições...');
+  console.log("Aguardando requisições...");
 });
