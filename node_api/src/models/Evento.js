@@ -45,7 +45,7 @@ const EventoSchema = new mongoose.Schema({
     },
     conteudos: [ // lista de conteúdos do evento, cada conteúdo com título e itens
         {
-            titulo: { type: String, required: true },
+            titulo: { type: String },
             itens: [{ type: String }]
         }
     ],
