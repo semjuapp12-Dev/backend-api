@@ -90,6 +90,11 @@ exports.updateCurso = async (req, res) => {
             if (req.body[field] !== undefined) dadosAtualizados[field] = req.body[field];
         });
 
+        // Datas
+if (req.body.dataInicio !== undefined) dadosAtualizados.dataInicio = new Date(req.body.dataInicio);
+if (req.body.dataFim !== undefined) dadosAtualizados.dataFim = new Date(req.body.dataFim);
+
+
         // Tags, contatos e conteúdos
         if (req.body.tags !== undefined) dadosAtualizados.tags = parseJSONSafe(req.body.tags);
         if (req.body.contatos !== undefined) dadosAtualizados.contatos = addIds(parseJSONSafe(req.body.contatos));

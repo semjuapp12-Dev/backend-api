@@ -134,6 +134,12 @@ exports.updateEvento = async (req, res) => {
     if (req.body.local !== undefined) dadosAtualizados.local = req.body.local;
     if (req.body.status !== undefined) dadosAtualizados.status = req.body.status;
 
+
+    // 🔹 DATAS
+    if (req.body.data !== undefined) dadosAtualizados.data = new Date(req.body.data);
+    
+
+
     // 🔹 TAGS, CONTATOS, CONTEÚDOS
     if (req.body.tags !== undefined)
       dadosAtualizados.tags = parseJSONSafe(req.body.tags);

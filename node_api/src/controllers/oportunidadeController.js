@@ -82,6 +82,13 @@ exports.updateOportunidade = async (req, res) => {
             if (req.body[field] !== undefined) dadosAtualizados[field] = req.body[field];
         });
 
+
+
+
+        if (req.body.dataInicio !== undefined) dadosAtualizados.dataInicio = new Date(req.body.dataInicio);
+        if (req.body.dataFim !== undefined) dadosAtualizados.dataFim = new Date(req.body.dataFim);
+
+        
         // Conteudos e contatos
         if (req.body.conteudos !== undefined) dadosAtualizados.conteudos = addIds(parseJSONSafe(req.body.conteudos));
         if (req.body.contatos !== undefined) dadosAtualizados.contatos = addIds(parseJSONSafe(req.body.contatos));
