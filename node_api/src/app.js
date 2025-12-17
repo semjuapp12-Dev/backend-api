@@ -104,6 +104,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/achievements", achievementRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
+
+
 // Conteúdos
 app.use("/api/content/cursos", cursoRoutes);
 app.use("/api/content/eventos", eventoRoutes);

@@ -24,7 +24,8 @@ const EventoSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        default: 'Upcoming' // Valor padrão se não for enviado
+        enum: ['Upcoming', 'Ongoing', 'Completed', 'Cancelled'],
+        default: 'Upcoming'
     },
     destacado: {
         type: Boolean,

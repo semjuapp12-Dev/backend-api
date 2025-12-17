@@ -3,6 +3,63 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const { requireAuth, requirePermission } = require('../middlewares/auth');
 
+
+
+
+
+
+// ------------------------------------------------------------------
+// 🔹 RANKING (PÚBLICO)
+// ------------------------------------------------------------------
+
+// GET /api/users/ranking/top3
+router.get('/ranking/top3', userController.getTop3Ranking);
+
+
+// ------------------------------------------------------------------
+// 🔹 MINHA POSIÇÃO NO RANKING  (USUÁRIO LOGADO)
+// ------------------------------------------------------------------
+
+
+
+// GET /api/users/ranking/me
+router.get(
+  '/ranking/me',
+  requireAuth,
+  userController.getMyRankingPosition
+);
+
+
+// ------------------------------------------------------------------
+// 🔔 TOGGLE EVENTO LEMBRADO (USUÁRIO LOGADO)
+// ------------------------------------------------------------------
+
+router.post(
+  '/eventos/:eventoId/lembrar',
+  requireAuth,
+  userController.toggleEventoLembrado
+);
+
+
+
+
+// ------------------------------------------------------------------
+// 🔔 EVENTOS LEMBRADOS (USUÁRIO LOGADO)
+// ------------------------------------------------------------------
+
+// GET /api/users/eventos/lembrados
+router.get(
+  '/eventos/lembrados',
+  requireAuth,
+  userController.listarEventosLembrados
+);
+
+
+
+// ------------------------------------------------------------------
+// 🔹 PRIVADO
+// ------------------------------------------------------------------
+
 // Todas as rotas de gerenciamento de usuários requerem autenticação e permissão de Administrador
 
 // [GET] /api/users - Listar todos os usuários

@@ -9,6 +9,17 @@ router.get('/', eventoController.listEventos);
 // GET /api/content/eventos/:id
 router.get('/:id', eventoController.getEventoById); 
 
+
+
+
+//rota de cheink-in
+// POST /api/content/eventos/:id/checkin
+router.post(
+  '/:id/checkin',
+  requireAuth,
+  eventoController.checkinEvento
+);
+
 // Rotas de Gerenciamento (Requerem Autenticação e Permissão)
 // POST /api/content/eventos
 router.post('/', requireAuth, requirePermission(['administrador', 'editor']), eventoController.upload.single('imagem'), eventoController.createEvento);

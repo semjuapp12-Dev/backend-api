@@ -4,6 +4,8 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const Evento = require("../models/Evento");
+const User = require("../models/User");
+
 
 // ------------------------------------------------------------------
 // 🔹 MULTER CONFIG
@@ -220,3 +222,61 @@ exports.deleteEvento = async (req, res) => {
     res.status(500).json({ message: "Erro ao deletar evento" });
   }
 };
+
+// ------------------------------------------------------------------
+// 🔹 CHECK-IN EM EVENTO (QR CODE)
+// ------------------------------------------------------------------
+exports.checkinEvento = async (req, res) => {
+  try {
+    const userId = req.user.id; // vem do auth middleware
+    const eventoId = req.params.id;
+
+    const evento = await Evento.findById(eventoId);
+
+    if (!evento) {
+      return res.status(404).json({ message: "Evento não encontrado" });
+    }
+
+    // ✅ Só permite check-in se estiver acontecendo
+    if (evento.status !== "Ongoing") {
+      return res.status(400).json({
+        message: "Check-in permitido apenas para eventos em andamento",
+      });
+    }
+
+    const user = await User.findById(userId);
+
+    // 🔒 Impede XP duplicado
+    const jaFezCheckin = user.checkins.some(
+      (c) => c.evento.toString() === eventoId
+    );
+
+    if (jaFezCheckin) {
+      return res.status(400).json({
+        message: "Você já fez check-in neste evento",
+      });
+    }
+
+    // 🎯 Soma XP do evento
+    user.xp += evento.xp;
+
+    // 🧠 Recalcula nível (100 XP por nível)
+    user.nivel = Math.floor(user.xp / 100) + 1;
+
+    // 📝 Salva check-in
+    user.checkins.push({ evento: evento._id });
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Check-in realizado com sucesso!",
+      xpGanho: evento.xp,
+      xpTotal: user.xp,
+      nivelAtual: user.nivel,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao realizar check-in" });
+  }
+};
+// ------------------------------------------------------------------
