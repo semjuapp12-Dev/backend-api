@@ -66,15 +66,62 @@ const UserSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
-    pontuacao: {
+
+   xp: {
         type: Number,
         default: 0
     },
+    nivel: {
+        type: Number,
+        default: 1
+    },
+
+    checkins: [{
+    evento: { type: mongoose.Schema.Types.ObjectId, ref: 'Evento' },
+    data: { type: Date, default: Date.now }
+}],
+
+// 🔔 EVENTOS LEMBRADOS
+eventosLembrados: [
+  {
+    evento: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Evento',
+      required: true
+    },
+    lembreteEm: {
+      type: Date, // quando lembrar (opcional)
+      default: null
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }
+],
+    // collection of unlocked achievements nao funciona ainda
     conquistasDesbloqueadas: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Achievement'
     }]
 }, { timestamps: true });
+
+
+
+/* 👇👇 AQUI 👇👇 */
+function calcularNivel(xp) {
+  return Math.floor(Math.sqrt(xp / 100)) + 1;
+}
+
+
+/* 👇👇 DEPOIS VÊM OS MIDDLEWARES 👇👇 */
+
+// 🔹 Middleware do nível automático
+UserSchema.pre('save', function (next) {
+  if (this.xp < 0) this.xp = 0;
+  this.nivel = calcularNivel(this.xp);
+  next();
+});
 
 // Middleware para criptografar a senha antes de salvar
 UserSchema.pre('save', async function(next) {
@@ -91,6 +138,9 @@ UserSchema.pre('save', async function(next) {
         next(error);
     }
 });
+
+
+
 
 // Método para comparar a senha fornecida com a senha criptografada
 UserSchema.methods.comparePassword = async function(candidatePassword) {

@@ -49,3 +49,27 @@ exports.getSummary = async (req, res) => {
         res.status(500).send({ error: 'Erro ao obter resumo do dashboard.', details: error.message });
     }
 };
+
+// NOVO: [GET] /api/dashboard/stats - Obter dados de estatísticas para o StatsGrid do Frontend
+exports.getStats = async (req, res) => {
+    try {
+        // 1. Contagem de Conteúdos
+        const totalEvents = await Content.countDocuments({ tipo: 'evento' });
+        const totalOpportunities = await Content.countDocuments({ tipo: 'vaga' });
+        const totalCourses = await Content.countDocuments({ tipo: 'curso' });
+        const totalUsers = await User.countDocuments({ nivelAcesso: 'jovem' });
+
+        // Formato esperado pelo frontend (Dash.js)
+        const statsData = [
+            { title: "Eventos", value: totalEvents, label: "Ativos", type: "eventos", icon: "calendar" },
+            { title: "Oportunidades", value: totalOpportunities, label: "Postados", type: "oportunidades", icon: "briefcase" },
+            { title: "Cursos", value: totalCourses, label: "Disponíveis", type: "cursos", icon: "book" },
+            { title: "Usuários", value: totalUsers, label: "Registrados", type: "usuarios", icon: "users" },
+        ];
+
+        res.status(200).json(statsData);
+
+    } catch (error) {
+        res.status(500).send({ error: 'Erro ao obter estatísticas do dashboard.', details: error.message });
+    }
+};

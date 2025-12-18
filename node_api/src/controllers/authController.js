@@ -1,13 +1,14 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const dotenv = require('dotenv');
+const passport = require('passport'); // Adicionado para suportar a nova função de login
 
 dotenv.config();
 
-// Função auxiliar para gerar o token JWT
+// Função auxiliar para gerar o token JWT (Ainda usada no registro)
 const createToken = (user) => {
     return jwt.sign({ sub: user._id, nivelAcesso: user.nivelAcesso }, process.env.JWT_SECRET, {
-        expiresIn: '7d' // Token expira em 7 dias
+        expiresIn: '7d'
     });
 };
 
@@ -49,36 +50,29 @@ exports.register = async (req, res) => {
 };
 
 // [POST] /api/auth/login
-exports.login = async (req, res) => {
-    const { email, senha } = req.body;
-
-    // 1. Validação básica
-    if (!email || !senha) {
-        return res.status(422).send({ error: 'Você deve fornecer e-mail e senha.' });
-    }
-
-    try {
-        // 2. Buscar o usuário e forçar o carregamento da senha
-        const user = await User.findOne({ email }).select('+senha');
-
-        if (!user) {
-            return res.status(401).send({ error: 'Credenciais inválidas.' });
+// Lógica alterada para usar Passport.js
+exports.login = (req, res, next) => {
+    passport.authenticate('local', { session: false }, (err, user, info) => {
+        if (err || !user) {
+            return res.status(400).json({
+                message: info ? info.message : 'Falha na autenticação.',
+                user: user
+            });
         }
 
-        // 3. Comparar a senha
-        const isMatch = await user.comparePassword(senha);
+        req.login(user, { session: false }, (err) => {
+            if (err) {
+                res.send(err);
+            }
 
-        if (!isMatch) {
-            return res.status(401).send({ error: 'Credenciais inválidas.' });
-        }
+            // Gera o token JWT
+            // Nota: O payload aqui usa 'id', enquanto o createToken lá em cima usa 'sub'. 
+            // Verifique se o seu middleware de autenticação (requireAuth) espera 'id' ou 'sub'.
+            const token = jwt.sign({ id: user._id, nivelAcesso: user.nivelAcesso }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-        // 4. Responder com o token
-        res.status(200).json({ token: createToken(user), user: { id: user._id, email: user.email, nivelAcesso: user.nivelAcesso } });
-
-    } catch (error) {
-        // 5. Tratamento de erro
-        res.status(500).send({ error: 'Erro ao realizar login.', details: error.message });
-    }
+            return res.json({ user, token });
+        });
+    })(req, res, next);
 };
 
 // [GET] /api/auth/me (Rota protegida de exemplo)

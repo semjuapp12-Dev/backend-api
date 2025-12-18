@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const AchievementSchema = new mongoose.Schema({
-    nome: {
+    titulo: {
         type: String,
         required: true,
         trim: true
@@ -10,36 +10,43 @@ const AchievementSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    categoria: {
-        type: String,
-        required: true,
-        trim: true
-    },
-    pontuacao: {
+    tags: [{
+        type: String
+    }],
+    xp: {
         type: Number,
         required: true,
+        default: 0,
         min: 0
     },
+    ativa: {
+        type: Boolean,
+        default: false
+    },
+    imagem: {
+        type: String
+    },
     criterioDesbloqueio: {
-        type: String,
-        required: true,
-        // Ex: "participar de 3 eventos", "curtir 10 posts"
+        tipo: {
+            type: String,
+            enum: ['EVENTO', 'CURSO', 'OPORTUNIDADE'],
+            required: true
+        },
+        acao: {
+            type: String,
+            enum: ['PARTICIPAR', 'CONCLUIR', 'INSCRICAO'],
+            required: true
+        },
+        quantidade: {
+            type: Number,
+            required: true,
+            min: 1
+        }
     },
-    iconeEmblema: {
-        type: String, // URL do ícone/emblema
-        required: true
-    },
-    visibilidade: {
-        type: String,
-        enum: ['publica', 'oculta'],
-        default: 'publica'
-    },
-    dataCriacao: {
+    criadoEm: {
         type: Date,
         default: Date.now
     }
-}, { timestamps: true });
+});
 
-const Achievement = mongoose.model('Achievement', AchievementSchema);
-
-module.exports = Achievement;
+module.exports = mongoose.model('Achievement', AchievementSchema);

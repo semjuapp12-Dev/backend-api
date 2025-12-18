@@ -3,19 +3,42 @@ const router = express.Router();
 const achievementController = require('../controllers/achievementController');
 const { requireAuth, requirePermission } = require('../middlewares/auth');
 
-// Rotas de Leitura (Acesso público ou autenticado para ver todas as públicas)
 // GET /api/achievements
 router.get('/', achievementController.listAchievements);
 
-// Rotas de Gerenciamento (Apenas Admin)
+// GET /api/achievements/:id
+router.get(
+  '/:id',
+  requireAuth,
+  requirePermission(['administrador']),
+  achievementController.getAchievementById
+);
 
-// [POST] /api/achievements - Criar nova conquista
-router.post('/', requireAuth, requirePermission(['administrador']), achievementController.createAchievement);
 
-// [PUT] /api/achievements/:id - Atualizar conquista
-router.put('/:id', requireAuth, requirePermission(['administrador']), achievementController.updateAchievement);
+// POST /api/achievements (com imagem)
+router.post(
+    '/',
+    requireAuth,
+    requirePermission(['administrador']),
+    achievementController.upload.single('imagem'),
+    achievementController.createAchievement
+);
 
-// [DELETE] /api/achievements/:id - Deletar conquista
-router.delete('/:id', requireAuth, requirePermission(['administrador']), achievementController.deleteAchievement);
+// PUT /api/achievements/:id (com imagem)
+router.put(
+    '/:id',
+    requireAuth,
+    requirePermission(['administrador']),
+    achievementController.upload.single('imagem'),
+    achievementController.updateAchievement
+);
+
+// DELETE /api/achievements/:id
+router.delete(
+    '/:id',
+    requireAuth,
+    requirePermission(['administrador']),
+    achievementController.deleteAchievement
+);
 
 module.exports = router;
