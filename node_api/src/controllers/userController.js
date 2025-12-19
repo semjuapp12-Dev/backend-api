@@ -418,3 +418,40 @@ exports.listarOportunidadesLembradas = async (req, res) => {
     res.status(500).json({ message: 'Erro ao listar oportunidades lembradas' });
   }
 };
+
+
+// listar check-ins do usuário
+// listar check-ins do usuário
+exports.listarCheckins = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id)
+      .populate({
+        path: "historicoCheckins.refId",
+        select: "titulo data local imagem",
+      });
+
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado" });
+    }
+
+    // Formata o histórico incluindo xpGanho
+    const historicoFormatado = user.historicoCheckins.map(item => ({
+      tipo: item.tipo,
+      titulo: item.refId?.titulo || "",
+      data: item.refId?.data || null,
+      local: item.refId?.local || "",
+      imagem: item.refId?.imagem || "",
+      xpGanho: item.xpGanho || 0,
+      checkinEm: item.checkinEm, // opcional: incluir data do check-in
+    }));
+
+    res.status(200).json({
+      total: historicoFormatado.length,
+      historico: historicoFormatado
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao listar check-ins", error: error.message });
+  }
+};

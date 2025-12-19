@@ -37,6 +37,16 @@ router.post('/cursos/:cursoId/lembrar', requireAuth, userController.toggleCursoL
 // Listar cursos lembrados
 router.get('/cursos/lembrados', requireAuth, userController.listarCursosLembrados);
 
+
+
+// ------------------------------------------------------------------
+// 🔔 HISTÓRICO DE CHECK-INS (USUÁRIO LOGADO)
+// ------------------------------------------------------------------
+
+// Listar check-ins do usuário
+router.get('/checkins', requireAuth, userController.listarCheckins);
+
+
 // ------------------------------------------------------------------
 // 🔔 OPORTUNIDADES LEMBRADAS (USUÁRIO LOGADO)
 // ------------------------------------------------------------------

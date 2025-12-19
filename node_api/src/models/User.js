@@ -76,10 +76,31 @@ const UserSchema = new mongoose.Schema({
         default: 1
     },
 
-    checkins: [{
-    evento: { type: mongoose.Schema.Types.ObjectId, ref: 'Evento' },
-    data: { type: Date, default: Date.now }
-}],
+    // 🔹 Histórico de check-ins (eventos, cursos, oportunidades)
+historicoCheckins: [
+  {
+    tipo: { 
+      type: String, 
+      enum: ['Evento', 'Curso', 'Oportunidade'], // maiúsculo para casar com o model
+      required: true 
+    },
+    refId: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      required: true,
+      refPath: 'historicoCheckins.tipo' // popula dinamicamente
+    },
+    checkinEm: { 
+      type: Date, 
+      default: Date.now 
+    },
+    xpGanho: {
+      type: Number,
+      default: 0
+    }
+  }
+],
+
+
 
 // 🔔 EVENTOS LEMBRADOS
 eventosLembrados: [
