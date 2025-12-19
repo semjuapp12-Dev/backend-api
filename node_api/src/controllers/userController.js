@@ -1,5 +1,9 @@
 const User = require('../models/User');
 const Evento = require('../models/Evento');
+const Curso = require('../models/Curso');
+const Oportunidade = require('../models/Oportunidade');
+
+
 // [GET] /api/users - Listar todos os usuários (Apenas Admin)
 exports.listUsers = async (req, res) => {
     try {
@@ -258,5 +262,159 @@ exports.listarEventosLembrados = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Erro ao listar eventos lembrados' });
+  }
+};
+
+// POST /api/users/cursos/:cursoId/lembrar (TOGGLE)
+exports.toggleCursoLembrado = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { cursoId } = req.params;
+    const { lembreteEm } = req.body;
+
+    // 🔎 Confere se o curso existe
+    const curso = await Curso.findById(cursoId);
+    if (!curso) {
+      return res.status(404).json({ message: 'Curso não encontrado' });
+    }
+
+    const user = await User.findById(userId);
+
+    const index = user.cursosLembrados.findIndex(
+      c => c.curso.toString() === cursoId
+    );
+
+    // ❌ Se já existe → remove
+    if (index !== -1) {
+      user.cursosLembrados.splice(index, 1);
+      await user.save();
+
+      return res.status(200).json({
+        lembrado: false,
+        message: 'Curso removido dos lembretes'
+      });
+    }
+
+    // ➕ Se não existe → adiciona
+    user.cursosLembrados.push({
+      curso: cursoId,
+      lembreteEm: lembreteEm ? new Date(lembreteEm) : null
+    });
+
+    await user.save();
+
+    res.status(201).json({
+      lembrado: true,
+      message: 'Curso adicionado aos lembretes'
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao alternar lembrete do curso' });
+  }
+};
+
+
+// GET /api/users/cursos/lembrados 
+exports.listarCursosLembrados = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await User.findById(userId)
+      .populate({
+        path: 'cursosLembrados.curso',
+        select: 'titulo descricao dataInicio local imagem xp'
+      });
+
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+
+    res.status(200).json({
+      total: user.cursosLembrados.length,
+      cursos: user.cursosLembrados
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao listar cursos lembrados' });
+  }
+};
+
+// POST /api/users/oportunidades/:oportunidadeId/lembrar (TOGGLE)
+
+exports.toggleOportunidadeLembrada = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { oportunidadeId } = req.params;
+    const { lembreteEm } = req.body;
+
+    // 🔎 Confere se a oportunidade existe
+    const oportunidade = await Oportunidade.findById(oportunidadeId);
+    if (!oportunidade) {
+      return res.status(404).json({ message: 'Oportunidade não encontrada' });
+    }
+
+    const user = await User.findById(userId);
+
+    const index = user.oportunidadesLembradas.findIndex(
+      o => o.oportunidade.toString() === oportunidadeId
+    );
+
+    // ❌ Se já existe → remove
+    if (index !== -1) {
+      user.oportunidadesLembradas.splice(index, 1);
+      await user.save();
+
+      return res.status(200).json({
+        lembrado: false,
+        message: 'Oportunidade removida dos lembretes'
+      });
+    }
+
+    // ➕ Se não existe → adiciona
+    user.oportunidadesLembradas.push({
+      oportunidade: oportunidadeId,
+      lembreteEm: lembreteEm ? new Date(lembreteEm) : null
+    });
+
+    await user.save();
+
+    res.status(201).json({
+      lembrado: true,
+      message: 'Oportunidade adicionada aos lembretes'
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao alternar lembrete da oportunidade' });
+  }
+};
+
+
+// GET /api/users/oportunidades/lembradas
+
+exports.listarOportunidadesLembradas = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await User.findById(userId)
+      .populate({
+        path: 'oportunidadesLembradas.oportunidade',
+        select: 'titulo descricao dataInicio local xp'
+      });
+
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+
+    res.status(200).json({
+      total: user.oportunidadesLembradas.length,
+      oportunidades: user.oportunidadesLembradas
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao listar oportunidades lembradas' });
   }
 };

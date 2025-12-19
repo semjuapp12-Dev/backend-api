@@ -99,6 +99,47 @@ eventosLembrados: [
     }
   }
 ],
+
+ // 🔔 CURSOS LEMBRADOS
+    cursosLembrados: [
+        {
+            curso: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Curso',
+                required: true
+            },
+            lembreteEm: {
+                type: Date,
+                default: null
+            },
+            createdAt: {
+                type: Date,
+                default: Date.now
+            }
+        }
+    ],
+
+    // 🔔 OPORTUNIDADES LEMBRADAS
+    oportunidadesLembradas: [
+        {
+            oportunidade: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Oportunidade',
+                required: true
+            },
+            lembreteEm: {
+                type: Date,
+                default: null
+            },
+            createdAt: {
+                type: Date,
+                default: Date.now
+            }
+        }
+    ],
+
+
+
     // collection of unlocked achievements nao funciona ainda
     conquistasDesbloqueadas: [{
         type: mongoose.Schema.Types.ObjectId,
