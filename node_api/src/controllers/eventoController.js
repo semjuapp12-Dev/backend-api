@@ -232,15 +232,18 @@ exports.checkinEvento = async (req, res) => {
     const eventoId = req.params.id;
 
     const evento = await Evento.findById(eventoId);
-
     if (!evento) {
-      return res.status(404).json({ message: "Evento não encontrado" });
+      return res.status(404).json({
+        message: "Evento não encontrado",
+        type: "not_found"
+      });
     }
 
     // ✅ Só permite check-in se estiver acontecendo
     if (evento.status !== "Ongoing") {
-      return res.status(400).json({
+      return res.status(200).json({
         message: "Check-in permitido apenas para eventos em andamento",
+        type: "invalid_status",
       });
     }
 
@@ -252,8 +255,9 @@ exports.checkinEvento = async (req, res) => {
     );
 
     if (jaFezCheckin) {
-      return res.status(400).json({
+      return res.status(200).json({
         message: "Você já fez check-in neste evento",
+        type: "duplicate",
       });
     }
 
@@ -273,10 +277,13 @@ exports.checkinEvento = async (req, res) => {
       xpGanho: evento.xp,
       xpTotal: user.xp,
       nivelAtual: user.nivel,
+      type: "success",
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Erro ao realizar check-in" });
+    res.status(500).json({ message: "Erro ao realizar check-in",
+      type: "server_error"
+    });
   }
 };
 // ------------------------------------------------------------------
