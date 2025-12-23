@@ -224,48 +224,57 @@ exports.deleteEvento = async (req, res) => {
 };
 
 // ------------------------------------------------------------------
-// 🔹 CHECK-IN EM EVENTO (QR CODE)
+// 🔹 CHECK-IN EM EVENTO
 // ------------------------------------------------------------------
 exports.checkinEvento = async (req, res) => {
   try {
-    const userId = req.user.id; // vem do auth middleware
+    const userId = req.user.id;
     const eventoId = req.params.id;
 
+    // Busca o evento
     const evento = await Evento.findById(eventoId);
-
     if (!evento) {
-      return res.status(404).json({ message: "Evento não encontrado" });
+      return res.status(404).json({ message: "Evento não encontrado", type: "not_found" });
     }
 
-    // ✅ Só permite check-in se estiver acontecendo
+    // Só permite check-in se o evento estiver em andamento
     if (evento.status !== "Ongoing") {
-      return res.status(400).json({
+      return res.status(200).json({
         message: "Check-in permitido apenas para eventos em andamento",
+        type: "invalid_status",
       });
     }
 
+    // Busca o usuário
     const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado", type: "not_found" });
+    }
 
-    // 🔒 Impede XP duplicado
-    const jaFezCheckin = user.checkins.some(
-      (c) => c.evento.toString() === eventoId
+    // Verifica se já fez check-in neste evento
+    const jaFezCheckin = user.historicoCheckins.some(
+      (c) => c.tipo === "Evento" && c.refId.toString() === eventoId
     );
 
     if (jaFezCheckin) {
-      return res.status(400).json({
+      return res.status(200).json({
         message: "Você já fez check-in neste evento",
+        type: "duplicate",
       });
     }
 
-    // 🎯 Soma XP do evento
+    // Adiciona XP ao usuário
     user.xp += evento.xp;
 
-    // 🧠 Recalcula nível (100 XP por nível)
-    user.nivel = Math.floor(user.xp / 100) + 1;
+    // Salva check-in no histórico com XP ganho
+    user.historicoCheckins.push({
+      tipo: "Evento",
+      refId: evento._id,
+      xpGanho: evento.xp,
+      checkinEm: new Date()
+    });
 
-    // 📝 Salva check-in
-    user.checkins.push({ evento: evento._id });
-
+    // Salva alterações (middleware recalcula nível automaticamente)
     await user.save();
 
     res.status(200).json({
@@ -273,10 +282,14 @@ exports.checkinEvento = async (req, res) => {
       xpGanho: evento.xp,
       xpTotal: user.xp,
       nivelAtual: user.nivel,
+      type: "success",
     });
+
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Erro ao realizar check-in" });
+    res.status(500).json({
+      message: "Erro ao realizar check-in",
+      type: "server_error"
+    });
   }
 };
-// ------------------------------------------------------------------
