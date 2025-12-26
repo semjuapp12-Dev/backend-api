@@ -323,7 +323,7 @@ exports.listarCursosLembrados = async (req, res) => {
     const user = await User.findById(userId)
       .populate({
         path: 'cursosLembrados.curso',
-        select: 'titulo descricao dataInicio local imagem xp'
+        select: 'titulo status descricao dataInicio local imagem xp'
       });
 
     if (!user) {
