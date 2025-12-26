@@ -26,7 +26,7 @@ const UserSchema = new mongoose.Schema({
     },
     senha: {
         type: String,
-        required: function() {
+        required: function () {
             // A senha é obrigatória se não houver login social
             return !this.provedorSocial;
         },
@@ -67,7 +67,7 @@ const UserSchema = new mongoose.Schema({
         default: true
     },
 
-   xp: {
+    xp: {
         type: Number,
         default: 0
     },
@@ -75,53 +75,67 @@ const UserSchema = new mongoose.Schema({
         type: Number,
         default: 1
     },
+    // 🎟️ EVENTOS INSCRITOS
+    eventosInscritos: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Evento'
+        }
+    ],
+    cursosInscritos: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Curso'
+        }
+    ],
+
 
     // 🔹 Histórico de check-ins (eventos, cursos, oportunidades)
-historicoCheckins: [
-  {
-    tipo: { 
-      type: String, 
-      enum: ['Evento', 'Curso', 'Oportunidade'], // maiúsculo para casar com o model
-      required: true 
-    },
-    refId: { 
-      type: mongoose.Schema.Types.ObjectId, 
-      required: true,
-      refPath: 'historicoCheckins.tipo' // popula dinamicamente
-    },
-    checkinEm: { 
-      type: Date, 
-      default: Date.now 
-    },
-    xpGanho: {
-      type: Number,
-      default: 0
-    }
-  }
-],
+    historicoCheckins: [
+        {
+            tipo: {
+                type: String,
+                enum: ['Evento', 'Curso', 'Oportunidade'], // maiúsculo para casar com o model
+                required: true
+            },
+            refId: {
+                type: mongoose.Schema.Types.ObjectId,
+                required: true,
+                refPath: 'historicoCheckins.tipo' // popula dinamicamente
+            },
+            checkinEm: {
+                type: Date,
+                default: Date.now
+            },
+            xpGanho: {
+                type: Number,
+                default: 0
+            }
+        }
+    ],
 
 
 
-// 🔔 EVENTOS LEMBRADOS
-eventosLembrados: [
-  {
-    evento: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Evento',
-      required: true
-    },
-    lembreteEm: {
-      type: Date, // quando lembrar (opcional)
-      default: null
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now
-    }
-  }
-],
+    // 🔔 EVENTOS LEMBRADOS
+    eventosLembrados: [
+        {
+            evento: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Evento',
+                required: true
+            },
+            lembreteEm: {
+                type: Date, // quando lembrar (opcional)
+                default: null
+            },
+            createdAt: {
+                type: Date,
+                default: Date.now
+            }
+        }
+    ],
 
- // 🔔 CURSOS LEMBRADOS
+    // 🔔 CURSOS LEMBRADOS
     cursosLembrados: [
         {
             curso: {
@@ -172,7 +186,7 @@ eventosLembrados: [
 
 /* 👇👇 AQUI 👇👇 */
 function calcularNivel(xp) {
-  return Math.floor(Math.sqrt(xp / 100)) + 1;
+    return Math.floor(Math.sqrt(xp / 100)) + 1;
 }
 
 
@@ -180,13 +194,13 @@ function calcularNivel(xp) {
 
 // 🔹 Middleware do nível automático
 UserSchema.pre('save', function (next) {
-  if (this.xp < 0) this.xp = 0;
-  this.nivel = calcularNivel(this.xp);
-  next();
+    if (this.xp < 0) this.xp = 0;
+    this.nivel = calcularNivel(this.xp);
+    next();
 });
 
 // Middleware para criptografar a senha antes de salvar
-UserSchema.pre('save', async function(next) {
+UserSchema.pre('save', async function (next) {
     // Só executa se a senha foi modificada ou é nova E se não for login social
     if (!this.isModified('senha') || this.provedorSocial) {
         return next();
@@ -205,7 +219,7 @@ UserSchema.pre('save', async function(next) {
 
 
 // Método para comparar a senha fornecida com a senha criptografada
-UserSchema.methods.comparePassword = async function(candidatePassword) {
+UserSchema.methods.comparePassword = async function (candidatePassword) {
     // O 'select: false' impede que a senha seja carregada, então precisamos forçar o carregamento
     const userWithPassword = await this.model('User').findOne({ _id: this._id }).select('+senha');
     if (!userWithPassword || !userWithPassword.senha) {

@@ -3,6 +3,47 @@ const router = express.Router();
 const eventoController = require('../controllers/eventoController');
 const { requireAuth, requirePermission } = require('../middlewares/auth');
 
+
+
+
+// requer Autenticação
+
+// GET /api/content/eventos/meus-eventos
+router.get(
+  '/meus-eventos',
+  requireAuth,
+  eventoController.listarEventosInscritos
+);
+
+
+// POST /api/content/eventos/:id/inscricao
+router.post(
+  '/:id/inscricao',
+  requireAuth,
+  eventoController.inscreverEvento
+);
+
+// DELETE /api/content/eventos/:id/inscricao
+router.delete(
+  '/:id/inscricao',
+  requireAuth,
+  eventoController.cancelarInscricaoEvento
+);
+//rota de cheink-in
+// POST /api/content/eventos/:id/checkin
+router.post(
+  '/:id/checkin',
+  requireAuth,
+  eventoController.checkinEvento
+);
+
+
+
+
+
+
+
+//rotas publicas 
 // Rotas de Leitura (GET) - Acesso Público
 // GET /api/content/eventos
 router.get('/', eventoController.listEventos); 
@@ -12,13 +53,8 @@ router.get('/:id', eventoController.getEventoById);
 
 
 
-//rota de cheink-in
-// POST /api/content/eventos/:id/checkin
-router.post(
-  '/:id/checkin',
-  requireAuth,
-  eventoController.checkinEvento
-);
+
+
 
 // Rotas de Gerenciamento (Requerem Autenticação e Permissão)
 // POST /api/content/eventos

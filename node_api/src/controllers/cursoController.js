@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const Curso = require('../models/Curso');
+const User = require("../models/User");
 
 // -------------------- MULTER CONFIG --------------------
 const storage = multer.diskStorage({
@@ -151,4 +152,201 @@ exports.toggleHighlight = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Erro ao alternar destaque', error: error.message });
     }
+};
+
+
+
+// ------------------------------------------------------------------
+// 🔹 INSCRIÇÃO EM CURSO PRIVADO
+// ------------------------------------------------------------------
+exports.inscreverCurso = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const cursoId = req.params.id;
+
+    // 🔹 Busca o curso
+    const curso = await Curso.findById(cursoId);
+    if (!curso) {
+      return res.status(404).json({
+        message: "Curso não encontrado",
+        type: "not_found",
+      });
+    }
+
+    // 🔹 REGRA DE STATUS
+    if (curso.status !== "Upcoming") {
+      const mensagens = {
+        Ongoing: "Inscrições encerradas. O curso já está em andamento.",
+        Completed: "Este curso já foi concluído.",
+        Cancelled: "Este curso foi cancelado.",
+      };
+
+      return res.status(403).json({
+        message:
+          mensagens[curso.status] ||
+          "Inscrição não permitida para este curso",
+        status: curso.status,
+        type: "invalid_status",
+      });
+    }
+
+    
+
+    // 🔹 Verifica vagas
+    if (curso.vagas !== null && curso.vagasOcupadas >= curso.vagas) {
+      return res.status(400).json({
+        message: "Curso lotado",
+        vagasTotais: curso.vagas,
+        vagasOcupadas: curso.vagasOcupadas,
+        vagasDisponiveis: 0,
+        type: "full",
+      });
+    }
+
+    // 🔹 Busca usuário
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "Usuário não encontrado",
+        type: "not_found",
+      });
+    }
+
+    // 🔹 Evita inscrição duplicada
+    user.cursosInscritos = user.cursosInscritos || [];
+    const jaInscrito = user.cursosInscritos.some(
+      (id) => id.toString() === cursoId
+    );
+
+    if (jaInscrito) {
+      return res.status(200).json({
+        message: "Usuário já inscrito neste curso",
+        type: "duplicate",
+      });
+    }
+
+    // 🔹 Atualiza vagas
+    await Curso.findByIdAndUpdate(cursoId, {
+      $inc: { vagasOcupadas: 1 },
+    });
+
+    // 🔹 Salva inscrição no usuário
+    user.cursosInscritos.push(curso._id);
+    await user.save();
+
+    const vagasDisponiveis =
+      curso.vagas !== null
+        ? curso.vagas - (curso.vagasOcupadas + 1)
+        : "Ilimitadas";
+
+    res.status(200).json({
+      message: "Inscrição realizada com sucesso",
+      vagasTotais: curso.vagas,
+      vagasOcupadas: curso.vagasOcupadas + 1,
+      vagasDisponiveis,
+      type: "success",
+    });
+
+  } catch (error) {
+    console.error("Erro na inscrição do curso:", error);
+    res.status(500).json({
+      message: "Erro ao realizar inscrição",
+      type: "server_error",
+    });
+  }
+};
+
+
+// ------------------------------------------------------------------
+// 🔹 CANCELAR INSCRIÇÃO EM CURSO
+// ------------------------------------------------------------------
+exports.cancelarInscricaoCurso = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const cursoId = req.params.id;
+
+    // 🔹 Busca curso
+    const curso = await Curso.findById(cursoId);
+    if (!curso) {
+      return res.status(404).json({
+        message: "Curso não encontrado",
+        type: "not_found",
+      });
+    }
+
+    // 🔹 Busca usuário
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "Usuário não encontrado",
+        type: "not_found",
+      });
+    }
+
+    // 🔹 Verifica se está inscrito
+    const index = user.cursosInscritos.findIndex(
+      (id) => id.toString() === cursoId
+    );
+
+    if (index === -1) {
+      return res.status(400).json({
+        message: "Usuário não está inscrito neste curso",
+        type: "not_subscribed",
+      });
+    }
+
+    // 🔹 Remove inscrição do usuário
+    user.cursosInscritos.splice(index, 1);
+    await user.save();
+
+    // 🔹 Atualiza vagas (não deixa negativo)
+    if (curso.vagas !== null && curso.vagasOcupadas > 0) {
+      await Curso.findByIdAndUpdate(cursoId, {
+        $inc: { vagasOcupadas: -1 },
+      });
+    }
+
+    res.status(200).json({
+      message: "Inscrição cancelada com sucesso",
+      type: "success",
+    });
+
+  } catch (error) {
+    console.error("Erro ao cancelar inscrição:", error);
+    res.status(500).json({
+      message: "Erro ao cancelar inscrição",
+      type: "server_error",
+    });
+  }
+};
+
+
+// ------------------------------------------------------------------
+// 🔹 LISTAR CURSOS INSCRITOS DO USUÁRIO
+// ------------------------------------------------------------------
+exports.listarCursosInscritos = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await User.findById(userId)
+      .populate({
+        path: "cursosInscritos",
+        options: { sort: { data: 1 } },
+      });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "Usuário não encontrado",
+        type: "not_found",
+      });
+    }
+
+    res.status(200).json(user.cursosInscritos || []);
+  } catch (error) {
+    console.error("Erro ao listar cursos inscritos:", error);
+    res.status(500).json({
+      message: "Erro ao listar cursos inscritos",
+      type: "server_error",
+    });
+  }
 };

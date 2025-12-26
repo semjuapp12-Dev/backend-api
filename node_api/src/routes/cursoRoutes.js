@@ -3,6 +3,45 @@ const router = express.Router();
 const cursoController = require('../controllers/cursoController');
 const passport = require('passport'); // Usamos o passport configurado no projeto
 
+
+
+// ------------------------------------------------------------------
+// 🔹 INSCRIÇÕES EM CURSO (PRIVADO)
+// ------------------------------------------------------------------
+
+
+// GET /api/content/cursos/inscritos/me
+router.get(
+  '/meus-cursos',
+  passport.authenticate('jwt', { session: false }),
+  cursoController.listarCursosInscritos
+);
+
+// POST /api/content/cursos/:id/inscrever
+router.post(
+  '/:id/inscricao',
+  passport.authenticate('jwt', { session: false }),
+  cursoController.inscreverCurso
+);
+
+// DELETE /api/content/cursos/:id/cancelar-inscricao
+router.delete(
+  '/:id/inscricao',
+  passport.authenticate('jwt', { session: false }),
+  cursoController.cancelarInscricaoCurso
+);
+
+
+
+
+
+
+
+
+
+
+
+
 // --- ROTAS PÚBLICAS (Qualquer um pode ver) ---
 
 // GET /api/content/cursos -> Lista todos

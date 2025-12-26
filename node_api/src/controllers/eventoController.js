@@ -293,3 +293,210 @@ exports.checkinEvento = async (req, res) => {
     });
   }
 };
+
+
+
+// ------------------------------------------------------------------
+// 🔹 INSCRIÇÃO EM EVENTO PRIVADO
+// ------------------------------------------------------------------
+exports.inscreverEvento = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const eventoId = req.params.id;
+
+    // 🔹 Busca o evento
+    const evento = await Evento.findById(eventoId);
+    if (!evento) {
+      return res.status(404).json({
+        message: "Evento não encontrado",
+        type: "not_found",
+      });
+    }
+
+    // 🔹 REGRA DE STATUS (🔥 NOVO)
+    if (evento.status !== "Upcoming") {
+      const mensagens = {
+        Ongoing: "Inscrições encerradas. O evento já está em andamento.",
+        Completed: "Este evento já foi concluído.",
+        Cancelled: "Este evento foi cancelado.",
+      };
+
+      return res.status(403).json({
+        message:
+          mensagens[evento.status] ||
+          "Inscrição não permitida para este evento",
+        status: evento.status,
+        type: "invalid_status",
+      });
+    }
+
+    // 🔹 Verifica se é privado
+    if (evento.acesso !== "Privado") {
+      return res.status(403).json({
+        message: "Este evento não permite inscrição privada",
+        type: "forbidden",
+      });
+    }
+
+    // 🔹 Verifica vagas
+    if (evento.vagas !== null && evento.vagasOcupadas >= evento.vagas) {
+      return res.status(400).json({
+        message: "Evento lotado",
+        vagasTotais: evento.vagas,
+        vagasOcupadas: evento.vagasOcupadas,
+        vagasDisponiveis: 0,
+        type: "full",
+      });
+    }
+
+    // 🔹 Busca usuário
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "Usuário não encontrado",
+        type: "not_found",
+      });
+    }
+
+    // 🔹 Evita inscrição duplicada
+    user.eventosInscritos = user.eventosInscritos || [];
+    const jaInscrito = user.eventosInscritos.some(
+      (id) => id.toString() === eventoId
+    );
+
+    if (jaInscrito) {
+      return res.status(200).json({
+        message: "Usuário já inscrito neste evento",
+        type: "duplicate",
+      });
+    }
+
+    // 🔹 Atualiza vagas
+    await Evento.findByIdAndUpdate(eventoId, {
+      $inc: { vagasOcupadas: 1 },
+    });
+
+    // 🔹 Salva inscrição no usuário
+    user.eventosInscritos.push(evento._id);
+    await user.save();
+
+    const vagasDisponiveis =
+      evento.vagas !== null
+        ? evento.vagas - (evento.vagasOcupadas + 1)
+        : "Ilimitadas";
+
+    res.status(200).json({
+      message: "Inscrição realizada com sucesso",
+      vagasTotais: evento.vagas,
+      vagasOcupadas: evento.vagasOcupadas + 1,
+      vagasDisponiveis,
+      type: "success",
+    });
+
+  } catch (error) {
+    console.error("Erro na inscrição do evento:", error);
+    res.status(500).json({
+      message: "Erro ao realizar inscrição",
+      type: "server_error",
+    });
+  }
+};
+
+
+// ------------------------------------------------------------------
+// 🔹 CANCELAR INSCRIÇÃO EM EVENTO
+// ------------------------------------------------------------------
+exports.cancelarInscricaoEvento = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const eventoId = req.params.id;
+
+    // 🔹 Busca evento
+    const evento = await Evento.findById(eventoId);
+    if (!evento) {
+      return res.status(404).json({
+        message: "Evento não encontrado",
+        type: "not_found",
+      });
+    }
+
+    // 🔹 Busca usuário
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "Usuário não encontrado",
+        type: "not_found",
+      });
+    }
+
+    // 🔹 Verifica se está inscrito
+    const index = user.eventosInscritos.findIndex(
+      (id) => id.toString() === eventoId
+    );
+
+    if (index === -1) {
+      return res.status(400).json({
+        message: "Usuário não está inscrito neste evento",
+        type: "not_subscribed",
+      });
+    }
+
+    // 🔹 Remove inscrição do usuário
+    user.eventosInscritos.splice(index, 1);
+    await user.save();
+
+    // 🔹 Atualiza vagas (não deixa negativo)
+    if (evento.vagas !== null && evento.vagasOcupadas > 0) {
+      await Evento.findByIdAndUpdate(eventoId, {
+        $inc: { vagasOcupadas: -1 },
+      });
+    }
+
+    res.status(200).json({
+      message: "Inscrição cancelada com sucesso",
+      type: "success",
+    });
+
+  } catch (error) {
+    console.error("Erro ao cancelar inscrição:", error);
+    res.status(500).json({
+      message: "Erro ao cancelar inscrição",
+      type: "server_error",
+    });
+  }
+};
+
+
+
+// ------------------------------------------------------------------
+// 🔹 LISTAR EVENTOS INSCRITOS DO USUÁRIO
+// ------------------------------------------------------------------
+exports.listarEventosInscritos = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await User.findById(userId)
+      .populate({
+        path: "eventosInscritos",
+        options: { sort: { data: 1 } }, // ordena por data
+      });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "Usuário não encontrado",
+        type: "not_found",
+      });
+    }
+
+    res.status(200).json(user.eventosInscritos || []);
+  } catch (error) {
+    console.error("Erro ao listar eventos inscritos:", error);
+    res.status(500).json({
+      message: "Erro ao listar eventos inscritos",
+      type: "server_error",
+    });
+  }
+};
+
+
+
