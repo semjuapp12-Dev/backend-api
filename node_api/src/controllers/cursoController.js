@@ -341,7 +341,8 @@ exports.listarCursosInscritos = async (req, res) => {
     const user = await User.findById(userId)
       .populate({
         path: "cursosInscritos",
-        options: { sort: { data: 1 } },
+        select: "titulo status dataInicio local", // campos essenciais
+        options: { sort: { dataInicio: 1 } },   // ordena por data de início
       });
 
     if (!user) {
@@ -351,7 +352,15 @@ exports.listarCursosInscritos = async (req, res) => {
       });
     }
 
-    res.status(200).json(user.cursosInscritos || []);
+    const cursos = user.cursosInscritos.map((curso) => ({
+      id: curso._id,
+      titulo: curso.titulo,
+      status: curso.status,
+      data: curso.dataInicio,
+      local: curso.local,
+    }));
+
+    res.status(200).json(cursos);
   } catch (error) {
     console.error("Erro ao listar cursos inscritos:", error);
     res.status(500).json({

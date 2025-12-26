@@ -494,6 +494,7 @@ exports.listarEventosInscritos = async (req, res) => {
     const user = await User.findById(userId)
       .populate({
         path: "eventosInscritos",
+        select: "titulo status data local", // apenas os campos necessários
         options: { sort: { data: 1 } }, // ordena por data
       });
 
@@ -504,7 +505,15 @@ exports.listarEventosInscritos = async (req, res) => {
       });
     }
 
-    res.status(200).json(user.eventosInscritos || []);
+    const eventos = user.eventosInscritos.map((evento) => ({
+      id: evento._id,
+      titulo: evento.titulo,
+      status: evento.status,
+      data: evento.data,
+      local: evento.local,
+    }));
+
+    res.status(200).json(eventos);
   } catch (error) {
     console.error("Erro ao listar eventos inscritos:", error);
     res.status(500).json({
@@ -513,6 +522,3 @@ exports.listarEventosInscritos = async (req, res) => {
     });
   }
 };
-
-
-
