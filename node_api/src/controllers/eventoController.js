@@ -313,7 +313,7 @@ exports.inscreverEvento = async (req, res) => {
       });
     }
 
-    // 🔹 REGRA DE STATUS (🔥 NOVO)
+    // 🔹 Regra de status
     if (evento.status !== "Upcoming") {
       const mensagens = {
         Ongoing: "Inscrições encerradas. O evento já está em andamento.",
@@ -322,9 +322,7 @@ exports.inscreverEvento = async (req, res) => {
       };
 
       return res.status(403).json({
-        message:
-          mensagens[evento.status] ||
-          "Inscrição não permitida para este evento",
+        message: mensagens[evento.status] || "Inscrição não permitida para este evento",
         status: evento.status,
         type: "invalid_status",
       });
@@ -335,17 +333,6 @@ exports.inscreverEvento = async (req, res) => {
       return res.status(403).json({
         message: "Este evento não permite inscrição privada",
         type: "forbidden",
-      });
-    }
-
-    // 🔹 Verifica vagas
-    if (evento.vagas !== null && evento.vagasOcupadas >= evento.vagas) {
-      return res.status(400).json({
-        message: "Evento lotado",
-        vagasTotais: evento.vagas,
-        vagasOcupadas: evento.vagasOcupadas,
-        vagasDisponiveis: 0,
-        type: "full",
       });
     }
 
@@ -363,7 +350,6 @@ exports.inscreverEvento = async (req, res) => {
     const jaInscrito = user.eventosInscritos.some(
       (id) => id.toString() === eventoId
     );
-
     if (jaInscrito) {
       return res.status(200).json({
         message: "Usuário já inscrito neste evento",
@@ -371,24 +357,46 @@ exports.inscreverEvento = async (req, res) => {
       });
     }
 
-    // 🔹 Atualiza vagas
-    await Evento.findByIdAndUpdate(eventoId, {
-      $inc: { vagasOcupadas: 1 },
-    });
+    // 🔹 Atualiza vagas de forma atômica
+    let eventoAtualizado;
+    if (evento.vagas !== null) {
+      eventoAtualizado = await Evento.findOneAndUpdate(
+        { _id: eventoId, vagasOcupadas: { $lt: evento.vagas } },
+        { $inc: { vagasOcupadas: 1 } },
+        { new: true }
+      );
+
+      if (!eventoAtualizado) {
+        return res.status(400).json({
+          message: "Evento lotado",
+          vagasTotais: evento.vagas,
+          vagasOcupadas: evento.vagasOcupadas,
+          vagasDisponiveis: 0,
+          type: "full",
+        });
+      }
+    } else {
+      // Evento ilimitado
+      eventoAtualizado = await Evento.findByIdAndUpdate(
+        eventoId,
+        { $inc: { vagasOcupadas: 1 } },
+        { new: true }
+      );
+    }
 
     // 🔹 Salva inscrição no usuário
     user.eventosInscritos.push(evento._id);
     await user.save();
 
     const vagasDisponiveis =
-      evento.vagas !== null
-        ? evento.vagas - (evento.vagasOcupadas + 1)
+      eventoAtualizado.vagas !== null
+        ? eventoAtualizado.vagas - eventoAtualizado.vagasOcupadas
         : "Ilimitadas";
 
     res.status(200).json({
       message: "Inscrição realizada com sucesso",
-      vagasTotais: evento.vagas,
-      vagasOcupadas: evento.vagasOcupadas + 1,
+      vagasTotais: eventoAtualizado.vagas,
+      vagasOcupadas: eventoAtualizado.vagasOcupadas,
       vagasDisponiveis,
       type: "success",
     });
@@ -433,7 +441,6 @@ exports.cancelarInscricaoEvento = async (req, res) => {
     const index = user.eventosInscritos.findIndex(
       (id) => id.toString() === eventoId
     );
-
     if (index === -1) {
       return res.status(400).json({
         message: "Usuário não está inscrito neste evento",
@@ -446,14 +453,25 @@ exports.cancelarInscricaoEvento = async (req, res) => {
     await user.save();
 
     // 🔹 Atualiza vagas (não deixa negativo)
+    let eventoAtualizado = evento;
     if (evento.vagas !== null && evento.vagasOcupadas > 0) {
-      await Evento.findByIdAndUpdate(eventoId, {
-        $inc: { vagasOcupadas: -1 },
-      });
+      eventoAtualizado = await Evento.findByIdAndUpdate(
+        eventoId,
+        { $inc: { vagasOcupadas: -1 } },
+        { new: true }
+      );
     }
+
+    const vagasDisponiveis =
+      eventoAtualizado.vagas !== null
+        ? eventoAtualizado.vagas - eventoAtualizado.vagasOcupadas
+        : "Ilimitadas";
 
     res.status(200).json({
       message: "Inscrição cancelada com sucesso",
+      vagasTotais: eventoAtualizado.vagas,
+      vagasOcupadas: eventoAtualizado.vagasOcupadas,
+      vagasDisponiveis,
       type: "success",
     });
 
@@ -465,8 +483,6 @@ exports.cancelarInscricaoEvento = async (req, res) => {
     });
   }
 };
-
-
 
 // ------------------------------------------------------------------
 // 🔹 LISTAR EVENTOS INSCRITOS DO USUÁRIO

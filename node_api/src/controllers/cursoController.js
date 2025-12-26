@@ -157,7 +157,7 @@ exports.toggleHighlight = async (req, res) => {
 
 
 // ------------------------------------------------------------------
-// 🔹 INSCRIÇÃO EM CURSO PRIVADO
+// 🔹 INSCRIÇÃO EM CURSO COM GARANTIA DE VAGA
 // ------------------------------------------------------------------
 exports.inscreverCurso = async (req, res) => {
   try {
@@ -173,7 +173,7 @@ exports.inscreverCurso = async (req, res) => {
       });
     }
 
-    // 🔹 REGRA DE STATUS
+    // 🔹 Valida status do curso
     if (curso.status !== "Upcoming") {
       const mensagens = {
         Ongoing: "Inscrições encerradas. O curso já está em andamento.",
@@ -182,24 +182,9 @@ exports.inscreverCurso = async (req, res) => {
       };
 
       return res.status(403).json({
-        message:
-          mensagens[curso.status] ||
-          "Inscrição não permitida para este curso",
+        message: mensagens[curso.status] || "Inscrição não permitida para este curso",
         status: curso.status,
         type: "invalid_status",
-      });
-    }
-
-    
-
-    // 🔹 Verifica vagas
-    if (curso.vagas !== null && curso.vagasOcupadas >= curso.vagas) {
-      return res.status(400).json({
-        message: "Curso lotado",
-        vagasTotais: curso.vagas,
-        vagasOcupadas: curso.vagasOcupadas,
-        vagasDisponiveis: 0,
-        type: "full",
       });
     }
 
@@ -217,7 +202,6 @@ exports.inscreverCurso = async (req, res) => {
     const jaInscrito = user.cursosInscritos.some(
       (id) => id.toString() === cursoId
     );
-
     if (jaInscrito) {
       return res.status(200).json({
         message: "Usuário já inscrito neste curso",
@@ -225,24 +209,47 @@ exports.inscreverCurso = async (req, res) => {
       });
     }
 
-    // 🔹 Atualiza vagas
-    await Curso.findByIdAndUpdate(cursoId, {
-      $inc: { vagasOcupadas: 1 },
-    });
+    // 🔹 Atualiza vagas de forma atômica para garantir vaga
+    let cursoAtualizado;
+    if (curso.vagas !== null) {
+      cursoAtualizado = await Curso.findOneAndUpdate(
+        { _id: cursoId, vagasOcupadas: { $lt: curso.vagas } }, // só incrementa se ainda houver vaga
+        { $inc: { vagasOcupadas: 1 } },
+        { new: true }
+      );
+
+      if (!cursoAtualizado) {
+        // Se não conseguiu incrementar, o curso já está lotado
+        return res.status(400).json({
+          message: "Curso lotado",
+          vagasTotais: curso.vagas,
+          vagasOcupadas: curso.vagasOcupadas,
+          vagasDisponiveis: 0,
+          type: "full",
+        });
+      }
+    } else {
+      // Curso ilimitado
+      cursoAtualizado = await Curso.findByIdAndUpdate(
+        cursoId,
+        { $inc: { vagasOcupadas: 1 } },
+        { new: true }
+      );
+    }
 
     // 🔹 Salva inscrição no usuário
     user.cursosInscritos.push(curso._id);
     await user.save();
 
     const vagasDisponiveis =
-      curso.vagas !== null
-        ? curso.vagas - (curso.vagasOcupadas + 1)
+      cursoAtualizado.vagas !== null
+        ? cursoAtualizado.vagas - cursoAtualizado.vagasOcupadas
         : "Ilimitadas";
 
     res.status(200).json({
       message: "Inscrição realizada com sucesso",
-      vagasTotais: curso.vagas,
-      vagasOcupadas: curso.vagasOcupadas + 1,
+      vagasTotais: cursoAtualizado.vagas,
+      vagasOcupadas: cursoAtualizado.vagasOcupadas,
       vagasDisponiveis,
       type: "success",
     });
@@ -308,7 +315,10 @@ exports.cancelarInscricaoCurso = async (req, res) => {
 
     res.status(200).json({
       message: "Inscrição cancelada com sucesso",
-      type: "success",
+  vagasTotais: curso.vagas,
+  vagasOcupadas: curso.vagasOcupadas - 1, // já que você decrementou
+  vagasDisponiveis: curso.vagas - (curso.vagasOcupadas - 1),
+  type: "success",
     });
 
   } catch (error) {
