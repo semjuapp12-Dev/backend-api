@@ -173,6 +173,12 @@ const UserSchema = new mongoose.Schema({
         }
     ],
 
+    likes: {
+  eventos: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Evento' }],
+  cursos: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Curso' }],
+  oportunidades: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Oportunidade' }]
+},
+
 
 
     // collection of unlocked achievements nao funciona ainda

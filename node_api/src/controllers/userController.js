@@ -4,6 +4,13 @@ const Curso = require('../models/Curso');
 const Oportunidade = require('../models/Oportunidade');
 
 
+
+const modelsMap = {
+  evento: Evento,
+  curso: Curso,
+  oportunidade: Oportunidade
+};
+
 // [GET] /api/users - Listar todos os usuários (Apenas Admin)
 exports.listUsers = async (req, res) => {
     try {
@@ -453,5 +460,79 @@ exports.listarCheckins = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Erro ao listar check-ins", error: error.message });
+  }
+};
+
+
+
+
+// POST /api/users/like/:tipo/:id  (TOGGLE)
+exports.toggleLike = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { tipo, id } = req.params;
+
+    const Model = modelsMap[tipo];
+    if (!Model) {
+      return res.status(400).json({ message: 'Tipo inválido' });
+    }
+
+    const item = await Model.findById(id);
+    if (!item) {
+      return res.status(404).json({ message: 'Item não encontrado' });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user.likes) {
+      user.likes = { eventos: [], cursos: [], oportunidades: [] };
+    }
+
+    const likesArray = user.likes[`${tipo}s`];
+    const index = likesArray.findIndex(
+      likeId => likeId.toString() === id
+    );
+
+    if (index !== -1) {
+      likesArray.splice(index, 1);
+      item.likes = Math.max(0, item.likes - 1);
+
+      await user.save();
+      await item.save();
+
+      return res.status(200).json({
+        liked: false,
+        likes: item.likes
+      });
+    }
+
+    likesArray.push(id);
+    item.likes += 1;
+
+    await user.save();
+    await item.save();
+
+    res.status(201).json({
+      liked: true,
+      likes: item.likes
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao dar like' });
+  }
+};
+
+
+
+
+exports.getMyLikes = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id)
+      .select('likes');
+
+    res.status(200).json(user.likes);
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao buscar meus likes' });
   }
 };

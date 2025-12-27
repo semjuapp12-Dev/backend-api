@@ -57,6 +57,25 @@ router.post('/oportunidades/:oportunidadeId/lembrar', requireAuth, userControlle
 // Listar oportunidades lembradas
 router.get('/oportunidades/lembradas', requireAuth, userController.listarOportunidadesLembradas);
 
+
+
+// ------------------------------------------------------------------
+// ❤️ LIKES (USUÁRIO LOGADO)
+// ------------------------------------------------------------------
+
+
+// GET /api/users/me/likes
+router.get('/me/likes', requireAuth, userController.getMyLikes);
+
+// Toggle like (evento | curso | oportunidade)
+router.post(
+  '/like/:tipo/:id',
+  requireAuth,
+  userController.toggleLike
+);
+
+
+
 // ------------------------------------------------------------------
 // 🔹 PRIVADO (ADMIN)
 // ------------------------------------------------------------------
